@@ -6,10 +6,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DataManager {
     private final List<Object> processors = new ArrayList<>();
     private final List<String> data = new ArrayList<>();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(3); // Используем фиксированный пул из 3 потоков
 
     // Регистрация обработчиков
     public void registerDataProcessor(Object processor) {
@@ -26,14 +29,11 @@ public class DataManager {
         }
     }
 
-    // Обработка данных с использованием потоков и Stream API
+    // Обработка данных с использованием ExecutorService
     public void processData() {
-        List<Thread> threads = new ArrayList<>(); // Список потоков
-
         // Перебираем строки данных
         data.forEach(line -> {
-            // Создаём поток вручную для обработки текущей строки
-            Thread thread = new Thread(() -> {
+            executorService.submit(() -> { // Отправляем задачу на выполнение в пул потоков
                 // Перебираем каждый процессор
                 processors.forEach(processor -> {
                     // Используем Stream API для фильтрации и вызова методов с аннотацией @DataProcessor
@@ -48,23 +48,24 @@ public class DataManager {
                         });
                 });
             });
-
-            threads.add(thread); // Добавляем поток в список
-            thread.start(); // Запускаем поток
-        });
-
-        // Ожидание завершения всех потоков
-        threads.forEach(thread -> {
-            try {
-                thread.join(); // Дожидаемся завершения каждого потока
-            } catch (InterruptedException e) {
-                e.printStackTrace(); // Обрабатываем исключения
-            }
         });
     }
 
-    // Сохранение данных в файл
-    public void saveData(String destination) throws IOException {
-        Files.write(Paths.get(destination), data);
+    // Завершение работы ExecutorService
+    public void shutdown() {
+        executorService.shutdown(); // Завершаем работу пула потоков
+        try {
+            // Ждем завершения всех задач в пуле потоков (например, 60 секунд)
+            if (!executorService.awaitTermination(60, java.util.concurrent.TimeUnit.SECONDS)) {
+                executorService.shutdownNow(); // Принудительное завершение, если задачи не завершены
+            }
+        } catch (InterruptedException e) {
+            System.out.println("ошибка" + e.getMessage());
+        }
+    }
+
+    public void saveData(String destination, DataProcessors processor) throws IOException {
+        List<String> processed = processor.getProcessedData(); // Получаем обработанные данные
+        Files.write(Paths.get(destination), processed); // Записываем их в файл
     }
 }
