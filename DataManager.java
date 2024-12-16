@@ -10,9 +10,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DataManager {
-    private final List<Object> processors = new ArrayList<>();
-    private final List<String> data = new ArrayList<>();
-    private final ExecutorService executorService = Executors.newFixedThreadPool(3); // Используем фиксированный пул из 3 потоков
+    private List<Object> processors = new ArrayList<>();
+    private List<String> data = new ArrayList<>();
+    private ExecutorService executorService = Executors.newFixedThreadPool(3);
 
     // Регистрация обработчиков
     public void registerDataProcessor(Object processor) {
@@ -24,26 +24,25 @@ public class DataManager {
         try (BufferedReader reader = new BufferedReader(new FileReader(source))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                data.add(line); // Добавляем каждую считанную строку в список данных
+                data.add(line);
             }
         }
     }
 
-    // Обработка данных с использованием ExecutorService
+    // Обработка данных
     public void processData() {
-        // Перебираем строки данных
         data.forEach(line -> {
-            executorService.submit(() -> { // Отправляем задачу на выполнение в пул потоков
+            executorService.submit(() -> { // Отправляем задачу в пул потоков
                 // Перебираем каждый процессор
                 processors.forEach(processor -> {
-                    // Используем Stream API для фильтрации и вызова методов с аннотацией @DataProcessor
-                    Arrays.stream(processor.getClass().getMethods()) // Получаем все методы класса
+                    // stream api для фильтрации
+                    Arrays.stream(processor.getClass().getMethods())
                         .filter(method -> method.isAnnotationPresent(DataProcessor.class)) // Оставляем только те, что помечены @DataProcessor
                         .forEach(method -> {
                             try {
                                 method.invoke(processor, line); // Вызываем метод с передачей строки
                             } catch (Exception e) {
-                                e.printStackTrace(); // Обрабатываем возможные исключения
+                                System.out.println("ошибка" + e.getMessage());
                             }
                         });
                 });

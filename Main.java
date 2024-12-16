@@ -12,7 +12,7 @@ public class Main {
             dataManager.shutdown(); // Ждем завершения всех задач
             dataManager.saveData("output.txt", dataProcessors); // Передаем dataProcessors для сохранения обработанных данных
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("ошибка" + e.getMessage());
         }
     }
 }
